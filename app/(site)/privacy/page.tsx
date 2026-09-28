@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 const sections = [
   {
     title: "Information we collect",
-    body: "This website does not require you to create an account, and it does not store information you enter in its forms. If you contact us by email — including when the careers form opens your email app — we receive the details you choose to include, such as your name, email address, phone number, and message.",
+    body: "This website does not require you to create an account. When you submit the careers form, we store the details you provide (your name, email address, optional phone number, area of interest, and message) in a secure database operated by our service provider, Supabase. If you email us, we receive whatever you choose to include.",
   },
   {
     title: "How we use information",
@@ -18,11 +18,11 @@ const sections = [
   },
   {
     title: "Retention",
-    body: "We keep correspondence only for as long as is reasonably necessary for the purpose it was shared, or as required by applicable law.",
+    body: "Careers applications and correspondence are kept only for as long as is reasonably necessary for the purpose they were shared, or as required by applicable law. Access to stored applications is restricted to authorised staff.",
   },
   {
     title: "Cookies and analytics",
-    body: "This website does not use advertising cookies. Our hosting provider may process standard technical data, such as IP addresses and request logs, to deliver and secure the website.",
+    body: "This website does not use advertising or tracking cookies. Our hosting provider may process standard technical data, such as IP addresses and request logs, to deliver and secure the website.",
   },
   {
     title: "Your choices",

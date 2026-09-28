@@ -2,8 +2,8 @@ import { CareersForm } from "@/components/CareersForm";
 
 const steps = [
   "Tell us about yourself and what you'd like to work on.",
-  "Your email app opens with your details filled in.",
-  "Send the email, and it comes straight to our team.",
+  "Submit the form. Your application goes straight to our team.",
+  "If there's a good fit, we'll reply by email.",
 ];
 
 export function Careers() {

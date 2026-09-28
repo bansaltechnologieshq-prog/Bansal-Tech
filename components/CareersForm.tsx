@@ -1,87 +1,75 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
+import { submitApplication, type ApplyState } from "@/app/(site)/actions";
 import { buttonClass } from "@/components/Button";
+import {
+  interests,
+  limits,
+  readApplication,
+  validateApplication,
+  type Errors,
+  type Field,
+} from "@/lib/careers";
 import { site } from "@/lib/site";
-
-const interests = [
-  "Engineering",
-  "Design",
-  "Product",
-  "Operations",
-  "Something else",
-];
-
-type Field = "name" | "email" | "phone" | "interest" | "message";
-type Errors = Partial<Record<Field, string>>;
 
 const inputClass =
   "block w-full rounded-xl border border-line bg-paper px-4 py-3 text-base text-pine transition-[border-color,box-shadow,background-color] placeholder:text-stone/60 hover:border-pine/30 focus:border-pine focus:bg-white focus:outline-none focus:ring-4 focus:ring-brass/25 aria-[invalid=true]:border-red-600";
 
 const labelClass = "text-[15px] font-semibold text-pine";
 
-function read(data: FormData, key: Field) {
-  return String(data.get(key) ?? "").trim();
-}
-
-function validate(data: FormData): Errors {
-  const errors: Errors = {};
-  if (!read(data, "name")) errors.name = "Enter your full name.";
-  const email = read(data, "email");
-  if (!email) errors.email = "Enter your email address.";
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-    errors.email = "Enter an email address like name@example.com.";
-  const phone = read(data, "phone");
-  if (phone && !/^[+()\d\s-]{7,20}$/.test(phone))
-    errors.phone = "Use digits, spaces, +, - or brackets only.";
-  if (!read(data, "interest")) errors.interest = "Choose the area that fits you best.";
-  if (read(data, "message").length < 10)
-    errors.message = "Write at least a sentence about yourself.";
-  return errors;
-}
-
-function buildMailto(data: FormData) {
-  const subject = `Careers: ${read(data, "interest")}, ${read(data, "name")}`;
-  const body = [
-    `Full name: ${read(data, "name")}`,
-    `Email: ${read(data, "email")}`,
-    `Phone: ${read(data, "phone") || "Not provided"}`,
-    `Area of interest: ${read(data, "interest")}`,
-    "",
-    read(data, "message"),
-  ].join("\n");
-  return `mailto:${site.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-}
+const initialState: ApplyState = { status: "idle" };
 
 export function CareersForm() {
-  const [errors, setErrors] = useState<Errors>({});
-  const [mailto, setMailto] = useState<string | null>(null);
+  const [state, formAction, pending] = useActionState(submitApplication, initialState);
+  const [clientErrors, setClientErrors] = useState<Errors>({});
+  const [dismissed, setDismissed] = useState<ApplyState | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
+  // Server-side validation errors take over from client ones after a submit.
+  const serverErrors = state.status === "error" && state !== dismissed ? state.errors ?? {} : {};
+  const errors: Errors = { ...serverErrors, ...clientErrors };
+  const formMessage = state.status === "error" && state !== dismissed ? state.message : undefined;
+
+  useEffect(() => {
+    const first = Object.keys(serverErrors)[0];
+    if (first) formRef.current?.querySelector<HTMLElement>(`[name="${first}"]`)?.focus();
+    // Only when a new server response arrives.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  // Dispatch manually (rather than <form action>) so React doesn't clear
+  // the fields when the server reports a problem.
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     const data = new FormData(form);
-    const next = validate(data);
-    setErrors(next);
-
-    const firstInvalid = Object.keys(next)[0];
-    if (firstInvalid) {
-      form.querySelector<HTMLElement>(`[name="${firstInvalid}"]`)?.focus();
+    const next = validateApplication(readApplication(data));
+    setClientErrors(next);
+    const first = Object.keys(next)[0];
+    if (first) {
+      form.querySelector<HTMLElement>(`[name="${first}"]`)?.focus();
       return;
     }
-
-    const href = buildMailto(data);
-    setMailto(href);
-    window.location.href = href;
+    startTransition(() => formAction(data));
   }
 
   function clearError(field: Field) {
-    if (!errors[field]) return;
-    setErrors((prev) => {
-      const next = { ...prev };
-      delete next[field];
-      return next;
-    });
+    if (clientErrors[field]) {
+      setClientErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+    if (serverErrors[field] || formMessage) setDismissed(state);
   }
 
   const describedBy = (field: Field) =>
@@ -94,12 +82,9 @@ export function CareersForm() {
       </p>
     ) : null;
 
-  if (mailto) {
+  if (state.status === "success" && state !== dismissed) {
     return (
-      <div
-        role="status"
-        className="rounded-3xl bg-pine p-8 text-paper sm:p-12"
-      >
+      <div role="status" className="rounded-3xl bg-pine p-8 text-paper sm:p-12">
         <svg
           viewBox="0 0 24 24"
           aria-hidden="true"
@@ -118,36 +103,42 @@ export function CareersForm() {
           Thanks for your interest. We&apos;ll be in touch.
         </h3>
         <p className="mt-4 max-w-md leading-relaxed text-paper/75">
-          Your email app should now be open with your application filled in.
-          Send that email to finish applying. This website doesn&apos;t send or
-          store anything itself.
+          Your application has been received. If it&apos;s a good fit, we&apos;ll
+          reply to the email address you gave us.
         </p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <a href={mailto} className={buttonClass("brass")}>
-            Open email again
-          </a>
-          <button
-            type="button"
-            onClick={() => setMailto(null)}
-            className={buttonClass(
-              "secondary",
-              "border-paper/30 text-paper hover:border-paper hover:bg-pine-2",
-            )}
-          >
-            Edit application
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setClientErrors({});
+            setDismissed(state);
+          }}
+          className={buttonClass(
+            "secondary",
+            "mt-8 border-paper/30 text-paper hover:border-paper hover:bg-pine-2",
+          )}
+        >
+          Submit another application
+        </button>
       </div>
     );
   }
 
   return (
     <form
+      ref={formRef}
       noValidate
       onSubmit={onSubmit}
       aria-label="Careers application"
       className="rounded-3xl border border-line bg-white p-6 shadow-[0_24px_60px_-30px_rgba(15,47,42,0.25)] sm:p-10"
     >
+      {/* Spam trap: hidden from people and assistive tech. */}
+      <div aria-hidden="true" className="absolute -left-[9999px] h-0 overflow-hidden">
+        <label>
+          Website
+          <input type="text" name="website" tabIndex={-1} autoComplete="off" />
+        </label>
+      </div>
+
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label htmlFor="name" className={labelClass}>
@@ -159,6 +150,7 @@ export function CareersForm() {
             type="text"
             autoComplete="name"
             required
+            maxLength={limits.name}
             aria-invalid={!!errors.name}
             aria-describedby={describedBy("name")}
             onChange={() => clearError("name")}
@@ -178,6 +170,7 @@ export function CareersForm() {
             inputMode="email"
             autoComplete="email"
             required
+            maxLength={limits.email}
             aria-invalid={!!errors.email}
             aria-describedby={describedBy("email")}
             onChange={() => clearError("email")}
@@ -197,6 +190,7 @@ export function CareersForm() {
             type="tel"
             inputMode="tel"
             autoComplete="tel"
+            maxLength={limits.phone}
             aria-invalid={!!errors.phone}
             aria-describedby={describedBy("phone")}
             onChange={() => clearError("phone")}
@@ -238,6 +232,7 @@ export function CareersForm() {
             name="message"
             rows={5}
             required
+            maxLength={limits.message}
             placeholder="What do you enjoy building, and what would you like to work on?"
             aria-invalid={!!errors.message}
             aria-describedby={describedBy("message")}
@@ -248,12 +243,28 @@ export function CareersForm() {
         </div>
       </div>
 
+      {formMessage && (
+        <p
+          role="alert"
+          className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800"
+        >
+          {formMessage}{" "}
+          <a href={`mailto:${site.email}`} className="underline underline-offset-2">
+            {site.email}
+          </a>
+        </p>
+      )}
+
       <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <button type="submit" className={buttonClass("primary", "w-full sm:w-auto")}>
-          Submit Application
+        <button
+          type="submit"
+          disabled={pending}
+          className={buttonClass("primary", "w-full sm:w-auto sm:min-w-52")}
+        >
+          {pending ? "Sending application…" : "Submit Application"}
         </button>
-        <p className="text-sm leading-relaxed text-stone sm:max-w-[16rem] sm:text-right">
-          Opens your email app with everything filled in.
+        <p className="text-sm leading-relaxed text-stone sm:max-w-[17rem] sm:text-right">
+          We only use these details to consider your application.
         </p>
       </div>
     </form>
