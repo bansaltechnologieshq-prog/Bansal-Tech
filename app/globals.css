@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --color-pine: #0f2f2a;
+  --color-pine-2: #1a3f39;
+  --color-paper: #f7f8f7;
+  --color-mist: #e7eeeb;
+  --color-stone: #5b6b67;
+  --color-line: #d9e0dd;
+  --color-brass: #b8913a;
+  --color-brass-soft: #e3cf9c;
+}
+
+@theme inline {
+  --font-sans: var(--font-bricolage);
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-pine);
+  font-variation-settings: "opsz" 14;
+}
+
+.display {
+  font-variation-settings: "opsz" 96;
+}
+
+::selection {
+  background: var(--color-brass-soft);
+  color: var(--color-pine);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brass);
+  outline-offset: 3px;
+}
+
+/* Hero module mark: tiles assemble once on load. */
+@keyframes tile-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+.tile-on {
+  animation: tile-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.rise {
+  animation: rise 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .tile-on,
+  .rise {
+    animation: none;
+  }
+}
