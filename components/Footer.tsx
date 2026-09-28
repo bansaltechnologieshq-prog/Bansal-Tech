@@ -24,20 +24,18 @@ export function Footer() {
                 </li>
               ))}
               <li>
-                <Link href="/privacy" className={linkClass}>
+                <SectionLink href="/privacy" className={linkClass}>
                   Privacy Policy
-                </Link>
+                </SectionLink>
               </li>
             </ul>
           </nav>
         </div>
         <div className="mt-12 flex flex-col gap-2 border-t border-paper/15 pt-6 text-sm text-paper/55 sm:flex-row sm:justify-between">
           <p>© 2026 Bansal Tech. All rights reserved.</p>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            <a href={`mailto:${site.email}`} className="hover:text-paper">
-              {site.email}
-            </a>
-          </div>
+          <a href={`mailto:${site.email}`} className="hover:text-paper">
+            {site.email}
+          </a>
         </div>
       </div>
     </footer>
